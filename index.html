@@ -1,0 +1,513 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CentOS Reminder — шпаргалка администратора</title>
+<style>
+  :root {
+    --bg: #0f172a;
+    --card: #1e293b;
+    --border: #334155;
+    --text: #e2e8f0;
+    --muted: #94a3b8;
+    --accent: #38bdf8;
+    --green: #4ade80;
+    --red: #f87171;
+    --yellow: #facc15;
+    --code-bg: #0b1120;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.6;
+    padding: 24px 16px 80px;
+  }
+  .container { max-width: 1100px; margin: 0 auto; }
+  header {
+    text-align: center;
+    margin-bottom: 36px;
+    padding-bottom: 24px;
+    border-bottom: 1px solid var(--border);
+  }
+  header h1 {
+    font-size: 1.8rem;
+    font-weight: 700;
+    background: linear-gradient(135deg, #38bdf8, #818cf8);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  header p { color: var(--muted); margin-top: 6px; font-size: 0.95rem; }
+
+  .section {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    margin-bottom: 16px;
+    overflow: hidden;
+  }
+  .section-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 16px 20px;
+    cursor: pointer;
+    user-select: none;
+    transition: background 0.15s;
+  }
+  .section-header:hover { background: rgba(56,189,248,0.06); }
+  .section-header .icon { font-size: 1.3rem; width: 28px; text-align: center; }
+  .section-header h2 { font-size: 1.05rem; font-weight: 600; flex: 1; }
+  .section-header .chevron {
+    color: var(--muted);
+    transition: transform 0.25s;
+    font-size: 0.9rem;
+  }
+  .section.open .chevron { transform: rotate(90deg); }
+  .section-body {
+    display: none;
+    padding: 0 20px 20px;
+    border-top: 1px solid var(--border);
+  }
+  .section.open .section-body { display: block; }
+
+  .cmd-block {
+    background: var(--code-bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    margin: 10px 0;
+    overflow: hidden;
+  }
+  .cmd-block .cmd-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 14px;
+    background: rgba(56,189,248,0.07);
+    border-bottom: 1px solid var(--border);
+    font-size: 0.8rem;
+    color: var(--muted);
+  }
+  .cmd-block .cmd-header .copy-btn {
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--muted);
+    border-radius: 5px;
+    padding: 2px 10px;
+    font-size: 0.75rem;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .cmd-block .cmd-header .copy-btn:hover {
+    border-color: var(--accent);
+    color: var(--accent);
+  }
+  .cmd-block .cmd-header .copy-btn.copied {
+    border-color: var(--green);
+    color: var(--green);
+  }
+  .cmd-block pre {
+    padding: 12px 14px;
+    font-family: 'SF Mono', 'Fira Code', 'Cascadia Code', Consolas, monospace;
+    font-size: 0.85rem;
+    color: var(--green);
+    overflow-x: auto;
+    white-space: pre;
+    tab-size: 2;
+  }
+  .cmd-block pre .comment { color: var(--muted); }
+  .cmd-block pre .danger { color: var(--red); }
+  .cmd-block pre .warn { color: var(--yellow); }
+
+  .note {
+    font-size: 0.82rem;
+    color: var(--muted);
+    padding: 8px 0 4px;
+    border-left: 3px solid var(--accent);
+    padding-left: 12px;
+    margin: 8px 0;
+  }
+  .note.danger { border-left-color: var(--red); }
+  .note.warn { border-left-color: var(--yellow); }
+
+  .badge {
+    display: inline-block;
+    font-size: 0.7rem;
+    padding: 1px 8px;
+    border-radius: 99px;
+    font-weight: 600;
+    vertical-align: middle;
+  }
+  .badge.danger { background: rgba(248,113,113,0.15); color: var(--red); }
+  .badge.ok { background: rgba(74,222,128,0.15); color: var(--green); }
+
+  footer {
+    text-align: center;
+    margin-top: 40px;
+    color: var(--muted);
+    font-size: 0.8rem;
+  }
+</style>
+</head>
+<body>
+<div class="container">
+
+<header>
+  <h1>🖥️ CentOS Reminder</h1>
+  <p>Шпаргалка системного администратора · команды для повседневных задач</p>
+</header>
+
+<!-- ============================================================ -->
+<!-- 1. Файлы и каталоги -->
+<!-- ============================================================ -->
+<div class="section open" id="sec-files">
+  <div class="section-header" onclick="toggle('sec-files')">
+    <span class="icon">📁</span>
+    <h2>Поиск и создание файлов и каталогов</h2>
+    <span class="chevron">▶</span>
+  </div>
+  <div class="section-body">
+    <div class="cmd-block">
+      <div class="cmd-header"><span>Поиск файлов и каталогов</span><button class="copy-btn" onclick="copyCmd(this)">Копировать</button></div>
+      <pre>find / -name "file1"                          <span class="comment"># найти файлы и каталоги с именем file1 от корня</span>
+find / -user user1                            <span class="comment"># найти файлы, принадлежащие пользователю user1</span>
+find /home/user1 -name "*.bin"                <span class="comment"># файлы с расширением .bin в каталоге /home/user1</span>
+find /usr/bin -type f -mtime -10              <span class="comment"># файлы, изменённые за последние 10 дней</span>
+find /usr/bin -type f -atime +100             <span class="comment"># файлы, к которым не обращались > 100 дней</span>
+locate "*.ps"                                 <span class="comment"># быстрый поиск по базе (перед этим: updatedb)</span>
+which halt                                    <span class="comment"># полный путь к исполняемому файлу</span>
+whereis halt                                  <span class="comment"># расположение бинарника, исходников и man-страниц</span></pre>
+    </div>
+
+    <div class="cmd-block">
+      <div class="cmd-header"><span>Создание, копирование, перемещение, удаление</span><button class="copy-btn" onclick="copyCmd(this)">Копировать</button></div>
+      <pre>mkdir dir1                                    <span class="comment"># создать каталог dir1</span>
+mkdir -p /tmp/dir1/dir2                       <span class="comment"># создать дерево каталогов (включая родительские)</span>
+touch file1                                   <span class="comment"># создать пустой файл</span>
+cp file1 file2                                <span class="comment"># скопировать file1 в file2</span>
+cp -a /tmp/dir1 .                             <span class="comment"># рекурсивно скопировать каталог с атрибутами</span>
+mv dir1 new_dir                               <span class="comment"># переименовать / переместить</span>
+ln -s file1 lnk1                              <span class="comment"># создать символическую ссылку</span>
+rm -f file1                                   <span class="comment"># удалить файл (без подтверждения)</span>
+rm -rf dir1                                   <span class="comment"># <span class="danger">ОПАСНО:</span> рекурсивно удалить каталог со всем содержимым</span></pre>
+    </div>
+    <div class="note danger">Команды <code>rm -rf</code> необратимы. Перед удалением каталогов убедитесь, что путь указан верно, особенно при работе от <code>root</code>.</div>
+  </div>
+</div>
+
+<!-- ============================================================ -->
+<!-- 2. Крупные файлы -->
+<!-- ============================================================ -->
+<div class="section" id="sec-bigfiles">
+  <div class="section-header" onclick="toggle('sec-bigfiles')">
+    <span class="icon">💾</span>
+    <h2>Поиск аномально крупных файлов и удаление</h2>
+    <span class="chevron">▶</span>
+  </div>
+  <div class="section-body">
+    <div class="cmd-block">
+      <div class="cmd-header"><span>Найти крупные файлы</span><button class="copy-btn" onclick="copyCmd(this)">Копировать</button></div>
+      <pre>df -h                                         <span class="comment"># использование дисковых разделов</span>
+du -sh /* | sort -rh | head -20               <span class="comment"># топ-20 самых тяжёлых элементов в корне</span>
+du -ah --max-depth=1 | sort -rh | head -10    <span class="comment"># топ-10 крупнейших файлов/каталогов в текущем каталоге</span>
+find / -type f -size +100M -exec ls -lh {} \; <span class="comment"># файлы > 100 МБ с человекочитаемым размером</span>
+find /var/log -type f -name "*.log" -size +50M <span class="comment"># крупные лог-файлы в /var/log</span></pre>
+    </div>
+
+    <div class="cmd-block">
+      <div class="cmd-header"><span>Удаление крупных / старых файлов</span><button class="copy-btn" onclick="copyCmd(this)">Копировать</button></div>
+      <pre>find /path -type f -size +100M -exec rm -f {} \;       <span class="comment"># удалить все файлы > 100 МБ в /path</span>
+find /path -type f -name "*.log" -size +100M -exec rm -f {} \; <span class="comment"># удалить крупные .log</span>
+find /var/log -type f -name "*.log.*" -mtime +7 -exec rm -f {} \; <span class="comment"># удалить логи старше 7 дней</span>
+rm -rf /tmp/*                                 <span class="comment"># <span class="warn">осторожно:</span> очистить /tmp</span></pre>
+    </div>
+    <div class="note warn">Перед удалением логов убедитесь, что сервис не держит файл открытым. Для активных логов лучше использовать <code>truncate -s 0 file.log</code>.</div>
+  </div>
+</div>
+
+<!-- ============================================================ -->
+<!-- 3. PHP -->
+<!-- ============================================================ -->
+<div class="section" id="sec-php">
+  <div class="section-header" onclick="toggle('sec-php')">
+    <span class="icon">🐘</span>
+    <h2>PHP — проверка версий и перезагрузка</h2>
+    <span class="chevron">▶</span>
+  </div>
+  <div class="section-body">
+    <div class="cmd-block">
+      <div class="cmd-header"><span>Проверка версий и окружения</span><button class="copy-btn" onclick="copyCmd(this)">Копировать</button></div>
+      <pre>php -v                                        <span class="comment"># версия PHP в CLI</span>
+php --ini                                     <span class="comment"># путь к php.ini</span>
+php -m                                        <span class="comment"># список подключённых модулей</span>
+ls /etc/php-fpm.d/                            <span class="comment"># конфигурации пулов php-fpm</span>
+systemctl status php-fpm                      <span class="comment"># статус основного сервиса</span></pre>
+    </div>
+
+    <div class="cmd-block">
+      <div class="cmd-header"><span>Перезагрузка PHP-FPM (включая именованные версии)</span><button class="copy-btn" onclick="copyCmd(this)">Копировать</button></div>
+      <pre>systemctl restart php-fpm                     <span class="comment"># стандартный php-fpm</span>
+systemctl restart php7.4-fpm                  <span class="comment"># если установлена версионная сборка</span>
+systemctl restart php8.1-fpm                  <span class="comment"># пример для PHP 8.1</span>
+systemctl reload php-fpm                      <span class="comment"># мягкая перезагрузка без разрыва соединений</span></pre>
+    </div>
+    <div class="note">Если используется <strong>fm</strong> (FastCGI Manager), имя юнита может отличаться: проверьте <code>systemctl list-units | grep -i fm</code>. Для нескольких версий PHP удобно использовать <code>systemctl restart php*-fpm</code> после проверки списка юнитов.</div>
+  </div>
+</div>
+
+<!-- ============================================================ -->
+<!-- 4. Веб-серверы -->
+<!-- ============================================================ -->
+<div class="section" id="sec-web">
+  <div class="section-header" onclick="toggle('sec-web')">
+    <span class="icon">🌐</span>
+    <h2>Nginx, Apache (и другие веб-серверы) — проверка и перезагрузка</h2>
+    <span class="chevron">▶</span>
+  </div>
+  <div class="section-body">
+    <div class="cmd-block">
+      <div class="cmd-header"><span>Проверка статуса</span><button class="copy-btn" onclick="copyCmd(this)">Копировать</button></div>
+      <pre>systemctl status nginx                        <span class="comment"># статус Nginx</span>
+systemctl status httpd                        <span class="comment"># статус Apache (httpd)</span>
+ss -tulnp | grep -E ':80|:443'                <span class="comment"># кто слушает 80 и 443 порты</span>
+nginx -t                                      <span class="comment"># проверка конфигурации Nginx</span>
+httpd -t                                      <span class="comment"># проверка конфигурации Apache</span></pre>
+    </div>
+
+    <div class="cmd-block">
+      <div class="cmd-header"><span>Перезагрузка</span><button class="copy-btn" onclick="copyCmd(this)">Копировать</button></div>
+      <pre>systemctl restart nginx                       <span class="comment"># полная перезагрузка Nginx</span>
+systemctl reload nginx                        <span class="comment"># мягкая перезагрузка (без разрыва соединений)</span>
+systemctl restart httpd                       <span class="comment"># полная перезагрузка Apache</span>
+systemctl reload httpd                        <span class="comment"># мягкая перезагрузка Apache</span>
+systemctl restart varnish                     <span class="comment"># если стоит Varnish</span>
+systemctl restart haproxy                     <span class="comment"># если стоит HAProxy</span></pre>
+    </div>
+    <div class="note">Перед <code>restart</code> полезно проверить синтаксис: <code>nginx -t</code> или <code>httpd -t</code>. Для боевых серверов предпочтительнее <code>reload</code> — он не разрывает активные соединения.</div>
+  </div>
+</div>
+
+<!-- ============================================================ -->
+<!-- 5. Базы данных -->
+<!-- ============================================================ -->
+<div class="section" id="sec-db">
+  <div class="section-header" onclick="toggle('sec-db')">
+    <span class="icon">🗄️</span>
+    <h2>Перезагрузка баз данных</h2>
+    <span class="chevron">▶</span>
+  </div>
+  <div class="section-body">
+    <div class="cmd-block">
+      <div class="cmd-header"><span>MySQL / MariaDB</span><button class="copy-btn" onclick="copyCmd(this)">Копировать</button></div>
+      <pre>systemctl status mysqld                       <span class="comment"># статус MySQL</span>
+systemctl restart mysqld                      <span class="comment"># перезагрузка MySQL</span>
+systemctl status mariadb                      <span class="comment"># статус MariaDB</span>
+systemctl restart mariadb                     <span class="comment"># перезагрузка MariaDB</span></pre>
+    </div>
+
+    <div class="cmd-block">
+      <div class="cmd-header"><span>PostgreSQL</span><button class="copy-btn" onclick="copyCmd(this)">Копировать</button></div>
+      <pre>systemctl status postgresql                   <span class="comment"># статус PostgreSQL</span>
+systemctl restart postgresql                  <span class="comment"># перезагрузка PostgreSQL</span></pre>
+    </div>
+
+    <div class="cmd-block">
+      <div class="cmd-header"><span>Другие СУБД</span><button class="copy-btn" onclick="copyCmd(this)">Копировать</button></div>
+      <pre>systemctl restart mongod                      <span class="comment"># MongoDB</span>
+systemctl restart redis                       <span class="comment"># Redis</span></pre>
+    </div>
+    <div class="note danger">Перезагрузка БД разрывает активные запросы. Выполняйте в окно обслуживания и предварительно делайте резервную копию.</div>
+  </div>
+</div>
+
+<!-- ============================================================ -->
+<!-- 6. Мониторинг нагрузки -->
+<!-- ============================================================ -->
+<div class="section" id="sec-monitor">
+  <div class="section-header" onclick="toggle('sec-monitor')">
+    <span class="icon">📊</span>
+    <h2>Мониторинг нагрузки и зависших соединений</h2>
+    <span class="chevron">▶</span>
+  </div>
+  <div class="section-body">
+    <div class="cmd-block">
+      <div class="cmd-header"><span>Общая нагрузка (CPU, память, диск)</span><button class="copy-btn" onclick="copyCmd(this)">Копировать</button></div>
+      <pre>top                                           <span class="comment">#实时: CPU, память, процессы</span>
+htop                                          <span class="comment"># более удобный интерактивный монитор (yum install htop)</span>
+uptime                                        <span class="comment"># load average за 1/5/15 минут</span>
+free -h                                       <span class="comment"># использование оперативной памяти и swap</span>
+vmstat 1 5                                    <span class="comment"># виртуальная память, CPU, I/O (5 снимков каждую секунду)</span>
+iostat -x 1 5                                 <span class="comment"># детальная статистика дискового I/O</span>
+df -h                                         <span class="comment"># заполненность разделов</span></pre>
+    </div>
+
+    <div class="cmd-block">
+      <div class="cmd-header"><span>Сетевые соединения и «зависшие» сокеты</span><button class="copy-btn" onclick="copyCmd(this)">Копировать</button></div>
+      <pre>ss -tulnp                                     <span class="comment"># все слушающие TCP/UDP порты с процессами</span>
+ss -tan state established                     <span class="comment"># только установленные соединения</span>
+ss -tan state time-wait | wc -l               <span class="comment"># количество сокетов в TIME_WAIT</span>
+ss -tan state close-wait                      <span class="comment"># сокеты в CLOSE_WAIT (частый признак утечки)</span>
+ss -s                                         <span class="comment"># сводка по всем типам сокетов</span>
+netstat -anp | grep :80 | wc -l               <span class="comment"># количество соединений на порту 80 (если установлен netstat)</span>
+iftop -i eth0                                 <span class="comment"># трафик в реальном времени по соединениям</span>
+tcpdump -i eth0 -nn port 80                   <span class="comment"># анализ пакетов на порту 80</span></pre>
+    </div>
+    <div class="note">Большое количество сокетов в <code>CLOSE_WAIT</code> часто указывает на то, что приложение не закрывает соединения. <code>TIME_WAIT</code> — нормальное состояние, но при тысячах таких сокетов стоит проверить <code>net.ipv4.tcp_tw_reuse</code>.</div>
+  </div>
+</div>
+
+<!-- ============================================================ -->
+<!-- 7. iptables -->
+<!-- ============================================================ -->
+<div class="section" id="sec-iptables">
+  <div class="section-header" onclick="toggle('sec-iptables')">
+    <span class="icon">🛡️</span>
+    <h2>Настройки iptables</h2>
+    <span class="chevron">▶</span>
+  </div>
+  <div class="section-body">
+    <div class="cmd-block">
+      <div class="cmd-header"><span>Установка и базовые операции</span><button class="copy-btn" onclick="copyCmd(this)">Копировать</button></div>
+      <pre>yum install iptables-services -y              <span class="comment"># установка (RHEL/CentOS)</span>
+systemctl start iptables                      <span class="comment"># запуск</span>
+systemctl enable iptables                     <span class="comment"># автозапуск</span>
+iptables -L -v -n                             <span class="comment"># просмотр правил</span>
+iptables -F                                   <span class="comment"># <span class="danger">ОПАСНО:</span> очистить все правила</span>
+service iptables save                         <span class="comment"># сохранить правила (CentOS 6/7)</span>
+iptables-save > /etc/sysconfig/iptables       <span class="comment"># альтернативное сохранение</span>
+iptables-restore < /etc/sysconfig/iptables    <span class="comment"># восстановить правила</span></pre>
+    </div>
+
+    <div class="cmd-block">
+      <div class="cmd-header"><span>Примеры правил</span><button class="copy-btn" onclick="copyCmd(this)">Копировать</button></div>
+      <pre><span class="comment"># Политики по умолчанию</span>
+iptables -P INPUT DROP
+iptables -P FORWARD DROP
+iptables -P OUTPUT ACCEPT
+
+<span class="comment"># Разрешить loopback</span>
+iptables -A INPUT -i lo -j ACCEPT
+
+<span class="comment"># Разрешить уже установленные соединения</span>
+iptables -A INPUT -m state --state ESTABLISHED,RELATED -j ACCEPT
+
+<span class="comment"># Открыть порты</span>
+iptables -A INPUT -p tcp --dport 22 -j ACCEPT    <span class="comment"># SSH</span>
+iptables -A INPUT -p tcp --dport 80 -j ACCEPT    <span class="comment"># HTTP</span>
+iptables -A INPUT -p tcp --dport 443 -j ACCEPT   <span class="comment"># HTTPS</span>
+
+<span class="comment"># Заблокировать IP</span>
+iptables -A INPUT -s 192.168.1.101 -j DROP
+
+<span class="comment"># Разрешить только определённый IP на порт</span>
+iptables -A INPUT -p tcp --dport 3306 -s 10.0.0.5 -j ACCEPT</pre>
+    </div>
+    <div class="note warn">На CentOS 7+ по умолчанию используется <code>firewalld</code>. Если вы ставите <code>iptables-services</code>, отключите <code>firewalld</code>: <code>systemctl disable --now firewalld</code>.</div>
+  </div>
+</div>
+
+<!-- ============================================================ -->
+<!-- 8. fail2ban -->
+<!-- ============================================================ -->
+<div class="section" id="sec-fail2ban">
+  <div class="section-header" onclick="toggle('sec-fail2ban')">
+    <span class="icon">🚫</span>
+    <h2>Настройки fail2ban</h2>
+    <span class="chevron">▶</span>
+  </div>
+  <div class="section-body">
+    <div class="cmd-block">
+      <div class="cmd-header"><span>Установка и запуск</span><button class="copy-btn" onclick="copyCmd(this)">Копировать</button></div>
+      <pre>yum install epel-release -y                   <span class="comment"># подключить EPEL (CentOS 7)</span>
+yum install fail2ban -y                       <span class="comment"># установка</span>
+systemctl enable --now fail2ban               <span class="comment"># запуск + автозапуск</span></pre>
+    </div>
+
+    <div class="cmd-block">
+      <div class="cmd-header"><span>Конфигурация</span><button class="copy-btn" onclick="copyCmd(this)">Копировать</button></div>
+      <pre>cp /etc/fail2ban/jail.conf /etc/fail2ban/jail.local   <span class="comment"># создать локальный конфиг (не трогать jail.conf)</span>
+vi /etc/fail2ban/jail.local                            <span class="comment"># редактировать jail.local</span></pre>
+    </div>
+
+    <div class="cmd-block">
+      <div class="cmd-header"><span>Пример jail.local для SSH</span><button class="copy-btn" onclick="copyCmd(this)">Копировать</button></div>
+      <pre>[DEFAULT]
+bantime  = 86400          <span class="comment"># бан на 24 часа (в секундах)</span>
+findtime = 600            <span class="comment"># окно наблюдения — 10 минут</span>
+maxretry = 5              <span class="comment"># макс. попыток до бана</span>
+banaction = iptables-multiport
+
+[sshd]
+enabled  = true
+port     = ssh
+filter   = sshd
+logpath  = /var/log/secure       <span class="comment"># для CentOS/RHEL</span>
+maxretry = 3
+bantime  = 86400</pre>
+    </div>
+
+    <div class="cmd-block">
+      <div class="cmd-header"><span>Управление и проверка</span><button class="copy-btn" onclick="copyCmd(this)">Копировать</button></div>
+      <pre>systemctl restart fail2ban                    <span class="comment"># перезапуск после правки конфига</span>
+fail2ban-client ping                          <span class="comment"># проверка: должен ответить "pong"</span>
+fail2ban-client status                        <span class="comment"># список активных jail</span>
+fail2ban-client status sshd                   <span class="comment"># статистика по SSH: забаненные IP</span>
+iptables -L INPUT -v -n | grep f2b            <span class="comment"># проверить, что правила fail2ban применились</span></pre>
+    </div>
+    <div class="note">На CentOS 7 используйте <code>banaction = firewallcmd-ipset</code>, если <code>firewalld</code> активен. В примере выше — <code>iptables-multiport</code> для классического iptables.</div>
+  </div>
+</div>
+
+<footer>
+  CentOS Reminder · команды проверены для CentOS 7/8/9 · используйте с осторожностью на production
+</footer>
+
+</div>
+
+<script>
+function toggle(id) {
+  document.getElementById(id).classList.toggle('open');
+}
+
+function copyCmd(btn) {
+  var pre = btn.closest('.cmd-block').querySelector('pre');
+  var text = pre.innerText || pre.textContent;
+  // убираем строки-комментарии и лишние пробелы для чистого копирования
+  var clean = text
+    .split('\n')
+    .map(function(line) {
+      return line.replace(/\s+#.*$/, '').trimEnd();
+    })
+    .filter(function(line) { return line.trim() !== ''; })
+    .join('\n');
+
+  navigator.clipboard.writeText(clean).then(function() {
+    btn.textContent = '✅ Скопировано';
+    btn.classList.add('copied');
+    setTimeout(function() {
+      btn.textContent = 'Копировать';
+      btn.classList.remove('copied');
+    }, 1500);
+  }).catch(function() {
+    // fallback
+    var ta = document.createElement('textarea');
+    ta.value = clean;
+    document.body.appendChild(ta);
+    ta.select();
+    document.execCommand('copy');
+    document.body.removeChild(ta);
+    btn.textContent = '✅ Скопировано';
+    btn.classList.add('copied');
+    setTimeout(function() {
+      btn.textContent = 'Копировать';
+      btn.classList.remove('copied');
+    }, 1500);
+  });
+}
+</script>
+
+</body>
+</html>
